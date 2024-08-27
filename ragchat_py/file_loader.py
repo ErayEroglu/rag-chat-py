@@ -11,7 +11,7 @@ from nanoid import generate as nanoid
 from database import DatasWithFileSource, FilePath, URL
 
 class FileDataLoader:
-    def __init__(self, config: DatasWithFileSource):
+    def __init__(sself, config: DatasWithFileSource):
         self.config = config
 
     async def load_file(self, args: Any):

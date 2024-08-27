@@ -2,7 +2,7 @@ import os
 from typing import Optional, Dict, Union
 from upstash_redis import Redis
 from upstash_vector import Index
-from ratelimit import Ratelimit
+from upstash_ratelimit import Ratelimit
 from models import upstash, openai
 from constants import DEFAULT_PROMPT
 from types import RAGChatConfig, UpstashDict, OpenAIChatLanguageModel, CustomPrompt
@@ -10,7 +10,7 @@ from types import RAGChatConfig, UpstashDict, OpenAIChatLanguageModel, CustomPro
 
 class Config:
     def __init__(self, config: Optional[RAGChatConfig] = None):
-        # Initialize redis instance
+        # Initialize redis instances
         self.redis = config.redis if config and config.redis else self.initialize_redis()
 
         # Rate limiting settings

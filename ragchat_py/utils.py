@@ -1,8 +1,10 @@
 import re
 import time
 from typing import List, Union, Dict, Any, TypeVar
-from types import BaseMessage, BaseLanguageModelInterface, OpenAIChatLanguageModel, ChatOptions, CustomPrompt
-# TODO: check imports
+from types import ChatOptions, OpenAIChatLanguageModel
+from langchain.core.messages import BaseMessage
+from langchain.core.language_models.base import BaseLanguageModelInterface
+from ragchat import CustomPrompt
 
 # Utility function to sanitize the question
 def sanitize_question(question: str) -> str:
@@ -34,15 +36,14 @@ DefaultChatOptions = {
     "prompt_fn": None
 }
 
+# TODO: Check here if the modifed object works as expected
 T = TypeVar('T')
 R = TypeVar('R')
 
-# Utility to modify ChatOptions by overriding specific keys with defaults
-def modify(obj: T, changes: Dict[str, Any]) -> T:
+def modify(obj: T, changes: Dict[str, Any]):
     result = {**obj, **changes}
     return result
 
-# ModifiedChatOptions will be created from the original ChatOptions and DefaultChatOptions
 ModifiedChatOptions = modify(ChatOptions, DefaultChatOptions)
 
 # Default delay for timeouts

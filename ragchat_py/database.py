@@ -1,15 +1,15 @@
-from typing import Any, Dict, List, Optional, Union, Callable, Awaitable
+from typing import Any, Dict, List, Optional, Union
 from nanoid import generate as nanoid
-from ragchat_py.constants import DEFAULT_SIMILARITY_THRESHOLD, DEFAULT_TOP_K
-from ragchat_py.file_loader import FileDataLoader
-from ragchat_py.types import AddContextOptions
+from constants import DEFAULT_SIMILARITY_THRESHOLD, DEFAULT_TOP_K
+from file_loader import FileDataLoader
+from types import AddContextOptions
 from upstash_vector import Index
 
 FilePath = str
 URL = str
 
 class DatasWithFileSource:
-    def __init__(self, type: str, fileSource: Union[FilePath, Any], options: Optional[AddContextOptions] = None, config: Optional[Dict[str, Any]] = None, pdfConfig: Optional[Dict[str, Any]] = None, csvConfig: Optional[Dict[str, Any]] = None, htmlConfig: Optional[Dict[str, Any]] = None):
+    def __init__(self, type: str, fileSource: Union[FilePath, bytes], options: Optional[AddContextOptions] = None, config: Optional[Dict[str, Any]] = None, pdfConfig: Optional[Dict[str, Any]] = None, csvConfig: Optional[Dict[str, Any]] = None, htmlConfig: Optional[Dict[str, Any]] = None):
         self.type = type
         self.fileSource = fileSource
         self.options = options
@@ -51,7 +51,12 @@ class Database:
 
     async def delete(self, ids: List[str], namespace: Optional[str] = None):
         await self.index.delete(ids, {"namespace": namespace})
-
+    
+    """
+    A method that allows you to query the vector database with plain text.
+    It takes care of the text-to-embedding conversion by itself.
+    Additionally, it lets consumers pass various options to tweak the output.
+    """
     async def retrieve(self, payload: VectorPayload) -> List[Dict[str, Any]]:
         result = await self.index.query(
             {

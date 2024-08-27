@@ -31,7 +31,7 @@ UpstashMessage = Dict[str, Union[int, str]]  # Replace with the actual type if d
 OptionalAsyncUpstashMessageList = Union[List[UpstashMessage], Awaitable[List[UpstashMessage]], None, Awaitable[None]]
 OnChatHistoryFetchedType = Callable[[List[UpstashMessage]], OptionalAsyncUpstashMessageList]
 
-OptionalAsync = Union[object, 'Awaitable[object]']
+OptionalAsync = Union[object, Awaitable[object]]
 
 class ChatOptions:
     def __init__(self,
