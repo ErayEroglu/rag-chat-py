@@ -32,6 +32,8 @@ class ContextService:
     async def delete(self, id: Union[str, List[str]], namespace: Optional[str] = None):
         await self._vector_service.delete({"ids": [id] if isinstance(id, str) else id, "namespace": namespace})
 
+    # TODO: Check if this function works as expected
+    # Not so sure about its functionality
     def _get_context(self, options_with_default: ModifiedChatOptions, input: str, debug: Optional[ChatLogger] = None):
         async def retrieve_context(session_id: str):
             await debug.log_send_prompt(input) if debug else None
