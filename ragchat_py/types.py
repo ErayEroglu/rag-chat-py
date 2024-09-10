@@ -1,114 +1,129 @@
-from typing import Callable, Dict, List, Optional, Union, Awaitable, ReturnType
-from langchain import ChatOpenAI
-from openai import openai
-from upstash_ratelimit import Ratelimit
-from upstash_redis import Redis
-from upstash_vector import Index
-from .ragchat import CustomPrompt
-from langchain import ChatMistralAI # TODO: python equivalent may be different, check requireds
+from typing import Callable, Optional, Union, List, Dict, Any, Awaitable
+from pydantic import BaseModel
 
+OptionalAsync = Union[Awaitable[Any], Any]
 
-# TODO: what is this about ???
-class Brand:
-    def __init__(self, brand: str):
-        self.__brand = brand
+# Constants for default values
+DEFAULT_HISTORY_LENGTH = 5
+DEFAULT_HISTORY_TTL = 86_400  # 1 day in seconds
+DEFAULT_SIMILARITY_THRESHOLD = 0.5
+DEFAULT_TOP_K = 5
 
-class Branded:
-    def __init__(self, value, brand: Brand):
-        self.value = value
-        self.brand = brand
-        
-OnChunkType = Callable[[Dict[str, Union[int, str]]], None]
-PrepareChatResult = Dict[str, str, any]  # Replace with the actual type if different
-OptionalAsyncPrepareChatResult = Union[PrepareChatResult, Awaitable[PrepareChatResult], None, Awaitable[None]]
-OnContextFetchedType = Callable[[PrepareChatResult], OptionalAsyncPrepareChatResult]
-RatelimitDetailsType = Callable[[Awaitable[ReturnType[Ratelimit["limit"]]]], None]
+# PrepareChatResult model
+class PrepareChatResult(BaseModel):
+    data: str
+    id: str
+    metadata: Any
 
-# Define the type hint for the onChatHistoryFetched callable
-UpstashMessage = Dict[str, Union[int, str]]  # Replace with the actual type if different
-OptionalAsyncUpstashMessageList = Union[List[UpstashMessage], Awaitable[List[UpstashMessage]], None, Awaitable[None]]
-OnChatHistoryFetchedType = Callable[[List[UpstashMessage]], OptionalAsyncUpstashMessageList]
+# UpstashDict type for metadata
+UpstashDict = Dict[str, Any]
 
-OptionalAsync = Union[object, Awaitable[object]]
+# UpstashMessage type
+class UpstashMessage(BaseModel):
+    role: str  # "assistant" or "user"
+    content: str
+    metadata: Optional[UpstashDict] = None
+    usage_metadata: Optional[Dict[str, int]] = None
+    id: str
 
-class ChatOptions:
-    def __init__(self,
-                 historyLength: int = 5,
-                 historyTTL: int = 86400,
-                 similarityThreshold: float = 0.5,
-                 topK: int = 5,
-                 ratelimitDetails: Optional[RatelimitDetailsType] = None,
-                 onChunk: Optional[OnChunkType] = None,
-                 onContextFetched: Optional[OnContextFetchedType] = None,
-                 onChatHistoryFetched: Optional[OnChatHistoryFetchedType] = None,
-                 disableRAG: bool = False):
-        self.historyLength = historyLength
-        self.historyTTL = historyTTL
-        self.similarityThreshold = similarityThreshold
-        self.topK = topK
-        self.ratelimitDetails = ratelimitDetails
-        self.onChunk = onChunk
-        self.onContextFetched = onContextFetched
-        self.onChatHistoryFetched = onChatHistoryFetched
-        self.disableRAG = disableRAG
+# ChatOptions class
+class ChatOptions(BaseModel):
+    # Length of the conversation history to include in your LLM query. Increasing this may lead to hallucinations. Retrieves the last N messages.
+    # @default 5
+    history_length: Optional[int] = DEFAULT_HISTORY_LENGTH
 
-class PrepareChatResult:
-    def __init__(self, data: str, id: str, metadata: object):
-        self.data = data
-        self.id = id
-        self.metadata = metadata
+    # Configuration to retain chat history. After the specified time, the history will be automatically cleared.
+    # @default 86_400 // 1 day in seconds
+    history_ttl: Optional[int] = DEFAULT_HISTORY_TTL
 
-class RAGChatConfig:
-    def __init__(self,
-                 vector: Optional[Index] = None,
-                 redis: Optional[Redis] = None,
-                 model: Optional[Union[ChatOpenAI, ChatMistralAI, 'OpenAIChatLanguageModel']] = None,
-                 ratelimit: Optional[Ratelimit] = None,
-                 debug: bool = False):
-        self.vector = vector
-        self.redis = redis
-        self.model = model
-        self.ratelimit = ratelimit
-        self.debug = debug
+    # Configuration to adjust the accuracy of results.
+    # @default 0.5
+    similarity_threshold: Optional[float] = DEFAULT_SIMILARITY_THRESHOLD
 
-class AddContextOptions:
-    def __init__(self, metadata: Optional[Dict] = None, namespace: str = ""):
-        self.metadata = metadata
-        self.namespace = namespace
+    # Amount of data points to include in your LLM query.
+    # @default 5
+    top_k: Optional[int] = DEFAULT_TOP_K
 
-class CommonChatAndRAGOptions:
-    def __init__(self,
-                 streaming: bool = False,
-                 sessionId: str = "upstash-rag-chat-session",
-                 namespace: Optional[str] = None,
-                 metadata: Optional[Dict] = None,
-                 ratelimitSessionId: str = "upstash-rag-chat-ratelimit-session",
-                 promptFn: Optional[CustomPrompt] = None):
-        self.streaming = streaming
-        self.sessionId = sessionId
-        self.namespace = namespace
-        self.metadata = metadata
-        self.ratelimitSessionId = ratelimitSessionId
-        self.promptFn = promptFn
+    # Details of applied rate limit.
+    ratelimit_details: Optional[Callable[[Dict[str, Any]], None]] = None
 
-class HistoryOptions:
-    def __init__(self, historyLength: int, sessionId: str):
-        self.historyLength = historyLength
-        self.sessionId = sessionId
+    # Hook to modify or get data and details of each chunk. Can be used to alter streamed content.
+    on_chunk: Optional[Callable[[Dict[str, Any]], None]] = None
 
-class UpstashMessage:
-    def __init__(self,
-                 role: str,
-                 content: str,
-                 metadata: Optional[Dict] = None,
-                 usage_metadata: Optional[Dict] = None,
-                 id: str = ""):
-        self.role = role
-        self.content = content
-        self.metadata = metadata
-        self.usage_metadata = usage_metadata
-        self.id = id
+    # Hook to access the retrieved context and modify as you wish.
+    on_context_fetched: Optional[Callable[[List[PrepareChatResult]], OptionalAsync[Union[List[PrepareChatResult], None]]]] = None
 
-class OpenAIChatLanguageModel:
-    def __init__(self, model : openai):
-        self.model = model
+    # Hook to access the retrieved history and modify as you wish.
+    on_chat_history_fetched: Optional[Callable[[List[UpstashMessage]], OptionalAsync[Union[List[UpstashMessage], None]]]] = None
+
+    # Allows disabling RAG and use chat as LLM in combination with prompt. This will give you ability to build your own pipelines.
+    disable_rag: Optional[bool] = False
+
+# CommonChatAndRAGOptions class
+class CommonChatAndRAGOptions(BaseModel):
+    # Set to `true` if working with web apps and you want to be interactive without stalling users.
+    streaming: Optional[bool] = False
+
+    # Chat session ID of the user interacting with the application.
+    # @default "upstash-rag-chat-session"
+    session_id: Optional[str] = "upstash-rag-chat-session"
+
+    # Namespace of the index you wanted to query.
+    namespace: Optional[str] = None
+
+    # Metadata for your chat message. This could be used to store anything in the chat history. By default RAG Chat SDK uses this to persist used model name in the history
+    metadata: Optional[UpstashDict] = None
+
+    # Rate limit session ID of the user interacting with the application.
+    # @default "upstash-rag-chat-ratelimit-session"
+    ratelimit_session_id: Optional[str] = "upstash-rag-chat-ratelimit-session"
+
+    # If no Index name or instance is provided, falls back to the default.
+    # @default
+    # PromptTemplate.fromTemplate(`You are a friendly AI assistant augmented with an Upstash Vector Store.
+    # To help you answer the questions, a context will be provided. This context is generated by querying the vector store with the user question.
+    # Answer the question at the end using only the information available in the context and chat history.
+    # If the answer is not available in the chat history or context, do not answer the question and politely let the user know that you can only answer if the answer is available in context or the chat history.
+    #
+    # -------------
+    # Chat history:
+    # {chat_history}
+    # -------------
+    # Context:
+    # {context}
+    # -------------
+    #
+    # Question: {question}
+    # Helpful answer:`)
+    prompt_fn: Optional[Callable[[str], str]] = None
+
+# RAGChatConfig class
+class RAGChatConfig(CommonChatAndRAGOptions):
+    # Assuming Index is a class
+    vector: Optional[Any] = None
+
+    # Assuming Redis is a class
+    redis: Optional[Any] = None
+
+    # ChatOpenAI, ChatMistralAI, OpenAIChatLanguageModel
+    model: Optional[Union[Any, Any, Any]] = None
+
+    # Assuming Ratelimit is a class
+    ratelimit: Optional[Any] = None
+
+    # Logs every step of the chat, including sending prompts, listing history entries,
+    # retrieving context from the vector database, and capturing the full response
+    # from the LLM, including latency.
+    debug: Optional[bool] = False
+
+# AddContextOptions class
+class AddContextOptions(BaseModel):
+    # Namespace of the index you wanted to insert. Default is empty string.
+    # @default ""
+    metadata: Optional[UpstashDict] = None
+    namespace: Optional[str] = ""
+
+# HistoryOptions class
+class HistoryOptions(BaseModel):
+    history_length: Optional[int] = None
+    session_id: Optional[str] = None
