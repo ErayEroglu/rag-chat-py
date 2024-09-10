@@ -1,10 +1,10 @@
 import re
 import time
 from typing import List, Union, Dict, Any, TypeVar
-from types import ChatOptions, OpenAIChatLanguageModel
+from .types import ChatOptions, OpenAIChatLanguageModel
 from langchain.core.messages import BaseMessage
-from langchain.core.language_models.base import BaseLanguageModelInterface
-from ragchat import CustomPrompt
+from langchain_core.language_models.base import BaseLanguageModel
+from .ragchat import CustomPrompt
 
 # Utility function to sanitize the question
 def sanitize_question(question: str) -> str:

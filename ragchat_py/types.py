@@ -1,13 +1,11 @@
 from typing import Callable, Dict, List, Optional, Union, Awaitable, ReturnType
-from langchain.openai import ChatOpenAI
+from langchain import ChatOpenAI
+from openai import openai
 from upstash_ratelimit import Ratelimit
 from upstash_redis import Redis
 from upstash_vector import Index
-from ragchat_py.types import CustomPrompt
-from langchain.mistralai import ChatMistralAI
-import openai
-from rag_chat import CustomPrompt # TODO:: not immplemented yet
-
+from .ragchat import CustomPrompt
+from langchain import ChatMistralAI # TODO: python equivalent may be different, check requireds
 
 
 # TODO: what is this about ???

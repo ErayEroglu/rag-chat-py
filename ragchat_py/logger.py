@@ -1,24 +1,35 @@
 import time
 import json
+from enum import Enum
 from typing import List, Dict, Any, Optional, Union
 
 
 # Constants and Type Aliases
 LOG_LEVELS = ["DEBUG", "INFO", "WARN", "ERROR"]
-
-LogLevel = Union["DEBUG", "INFO", "WARN", "ERROR"]
-
-EVENT_TYPES = [
-    "SEND_PROMPT", "RETRIEVE_HISTORY", "RETRIEVE_CONTEXT", "FINAL_PROMPT",
-    "FORMAT_HISTORY", "LLM_RESPONSE", "ERROR"
-]
-
+EVENTS = [
+        "SEND_PROMPT",
+        "RETRIEVE_HISTORY",
+        "RETRIEVE_CONTEXT",
+        "FINAL_PROMPT",
+        "FORMAT_HISTORY",
+        "LLM_RESPONSE",
+        "ERROR" 
+        ]
+class LogLevel:
+    def __init__(self, index: int):
+        self.index = index
+        self.level = LOG_LEVELS[index]
+        
+class EventTypes:
+    def __init__(self, index: int):
+        self.event = EVENTS[index]
+        
 class ChatLogEntry:
     def __init__(
         self,
         timestamp: int,
         log_level: LogLevel,
-        event_type: str,
+        event_type: EventTypes,
         details: Any,
         latency: Optional[int] = None
     ):
@@ -49,7 +60,8 @@ class ChatLogger:
         self.logs: List[ChatLogEntry] = []
         self.options = options
         self.event_start_times: Dict[str, int] = {}
-    async def log(self, level: LogLevel, event_type: str, details: Any, latency: Optional[int] = None):
+        
+    async def log(self, level: LogLevel, event_type: EventTypes, details: Any, latency: Optional[int] = None):
         if self.should_log(level):
             timestamp = int(time.time() * 1000)
             log_entry = ChatLogEntry(timestamp, level, event_type, details, latency)
@@ -65,8 +77,8 @@ class ChatLogger:
         print(json.dumps(log_entry.to_dict(), indent=JSON_SPACING))
 
     def should_log(self, level: LogLevel) -> bool:
-        level_index = LOG_LEVELS.index(level)
-        option_level_index = LOG_LEVELS.index(self.options.log_level)
+        level_index = level.index
+        option_level_index = self.options.log_level
         return level_index >= option_level_index
 
     def start_timer(self, event_type: str):

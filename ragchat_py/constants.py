@@ -1,4 +1,5 @@
-from typing import List, Dict, Any
+
+# import CustomPrompt from .ragchat
 
 DEFAULT_CHAT_SESSION_ID = "upstash-rag-chat-session"
 DEFAULT_CHAT_RATELIMIT_SESSION_ID = "upstash-rag-chat-ratelimit-session"
@@ -38,7 +39,7 @@ Context:
 Question: {question}
 Helpful answer:"""
 
-def default_prompt_without_rag(question: str, chat_history: str) -> str:
+def DEFAULT_PROMPT_WITHOUT_RAG(question: str, chat_history: str) -> str:
     return f"""You are a friendly AI assistant.
 To help you answer the questions, a chat history will be provided.
 Answer the question at the end.
